@@ -109,7 +109,7 @@ class Points:
     files_used = 0
     data = []
 
-def read_data_from_gpx(gpx_files: list[str], year_filter: int) -> Points:
+def read_data_from_gpx(gpx_files: list[str], year_filter: int, skip_line: int) -> Points:
     """Reads the data from gpx files and tracks used file count"""
 
     points = Points()
@@ -117,9 +117,13 @@ def read_data_from_gpx(gpx_files: list[str], year_filter: int) -> Points:
     for gpx_file in gpx_files:
         print('Reading {}'.format(os.path.basename(gpx_file)))
         file_used_in_points = 0
-
+        line_pointer = 0
         with open(gpx_file, encoding='utf-8') as file:
             for line in file:
+                line_pointer += 1
+                if line_pointer == skip_line:
+                    continue
+
                 if '<time' in line:
                     l = line.split('>')[1][:4]
 
@@ -148,7 +152,7 @@ def main(args: Namespace) -> None:
         exit('ERROR no data matching {}/{}'.format(args.dir,
                                                    args.filter))
 
-    points = read_data_from_gpx(gpx_files, args.year)
+    points = read_data_from_gpx(gpx_files, args.year, args.skipline)
     lat_lon_data = np.array(points.data)
 
     if lat_lon_data.size == 0:
@@ -357,6 +361,8 @@ if __name__ == '__main__':
                         help='not a heatmap...')
     parser.add_argument('--csv', action='store_true',
                         help='also save the heatmap data to a CSV file')
+    parser.add_argument('--skipline', type=int, default=0,
+                        help='skip the passed line in every gpx file. Useful if you want tu use the year filter but used gpsbabel and have a <time> entry before first trackpoint in each gpx file')
 
     args = parser.parse_args()
 
